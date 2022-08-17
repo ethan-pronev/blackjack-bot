@@ -43,6 +43,7 @@ class DiscordClient(discord.Client):
 		self.engine = engine
 		self.statuses = enum(
 			STOPPED = 'STOPPED',
+			CHECKING_BALANCE = 'CHECKING_BALANCE',
 			PLAYING = 'PLAYING'
 		)
 		self.currentStatus = self.statuses.STOPPED
@@ -63,24 +64,31 @@ class DiscordClient(discord.Client):
 		if message.author == self.user or username == 'ⓔ₮ℌἇℵ#2434':
 			if content == 'START':
 				if self.currentStatus == self.statuses.STOPPED:
-					self.status = self.statuses.PLAYING
+					self.currentStatus = self.statuses.CHECKING_BALANCE
 					await message.channel.send('starting blackjack...')
-					await message.channel.send('-blackjack 1')
+					await message.channel.send('-bal')
 			elif content == 'STOP':
 				if self.currentStatus != self.statuses.STOPPED:
-					self.status = self.statuses.STOPPED
+					self.currentStatus = self.statuses.STOPPED
 					await message.channel.send('stopping blackjack...')
-		
-		if self.status == self.statuses.STOPPED:
-			return
 
 		if username == 'Pancake#3691':
-			print(content + '\n')
+			# print(content + '\n')
 
 			embeds = message.embeds
 			for embed in embeds:
 				obj = embed.to_dict()
-				print(obj)
+				# print(obj)
+
+				if self.currentStatus == self.statuses.CHECKING_BALANCE:
+					if 'fields' in obj and 'author' in obj and 'name' in obj['author'] and obj['author']['name'] == 'BlackjackGod':
+						balanceField = [x for x in obj['fields'] if 'name' in x and x['name'] == 'In Hand']
+						if len(balanceField) == 1:
+							self.engine.balance = int(balanceField[0]['value'].replace('🥞', '').replace(',', ''))
+							self.currentStatus = self.statuses.PLAYING
+							await message.channel.send('-blackjack 1')
+					return
+
 				if 'title' in obj and 'Blackjack' in obj['title']:
 					# if this is the end of a game, update count
 					if 'won' in obj['description'] or 'lost' in obj['description'] or 'broke even' in obj['description']:
@@ -107,6 +115,10 @@ class DiscordClient(discord.Client):
 
 							self.engine.updateBalance(balanceChange)
 							betAmount = self.engine.calculateBetAmount()
+
+							# only stop at the end of a game
+							if self.currentStatus == self.statuses.STOPPED:
+								return
 
 							waitTime = self.waitTime - self.timeWaitedSoFar
 							if waitTime > 0:

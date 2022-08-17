@@ -13,4 +13,5 @@ simulator = BlackjackSimulator(engine)
 discordClient.run(os.getenv('TOKEN'))
 
 # run the engine against a simulator
-# simulator.run(sth,sth,sth)
+# for i in range(100):
+# 	simulator.run(4000, 5000) # (shoes, balance)
