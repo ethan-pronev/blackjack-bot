@@ -1,5 +1,6 @@
 from operator import truediv
 import time
+import random
 import re
 import discord
 from utils import enum
@@ -40,11 +41,14 @@ class DiscordClient(discord.Client):
 		super().__init__()
 
 		self.engine = engine
-		self.currentlyPlaying = False
-		self.waitTime = 5 # time in between games
 		self.statuses = enum(
-
+			STOPPED = 'STOPPED',
+			PLAYING = 'PLAYING'
 		)
+		self.currentStatus = self.statuses.STOPPED
+
+		self.waitTime = 5 # time in between games
+		self.timeWaitedSoFar = 0 # to distribute waiting time over several moves
 
 
 
@@ -56,20 +60,19 @@ class DiscordClient(discord.Client):
 		username = str(message.author)
 		content = message.content
 
-		if message.author == self.user:
+		if message.author == self.user or username == 'ⓔ₮ℌἇℵ#2434':
 			if content == 'START':
-				if not self.currentlyPlaying:
-					self.currentlyPlaying = True
+				if self.currentStatus == self.statuses.STOPPED:
+					self.status = self.statuses.PLAYING
 					await message.channel.send('starting blackjack...')
 					await message.channel.send('-blackjack 1')
 			elif content == 'STOP':
-				if self.currentlyPlaying:
-					self.currentlyPlaying = False
+				if self.currentStatus != self.statuses.STOPPED:
+					self.status = self.statuses.STOPPED
 					await message.channel.send('stopping blackjack...')
 		
-		if not self.currentlyPlaying:
-			pass
-			# return
+		if self.status == self.statuses.STOPPED:
+			return
 
 		if username == 'Pancake#3691':
 			print(content + '\n')
@@ -81,25 +84,44 @@ class DiscordClient(discord.Client):
 				if 'title' in obj and 'Blackjack' in obj['title']:
 					# if this is the end of a game, update count
 					if 'won' in obj['description'] or 'lost' in obj['description'] or 'broke even' in obj['description']:
+
+						remaining = 0 # when 0 cards remain Pancake shows 'Shuffling'
+						if 'Cards remaining' in obj['footer']['text']:
+							remaining = int(obj['footer']['text'].split(' ')[2])
+
 						allHands = self.__getUserHands(obj['fields'])
 						dealerHand = self.__getDealerHand(obj['fields'])
 						allHands.append(dealerHand)
-						for hand in allHands:
-							self.engine.updateCount(hand)
-						
-						await message.channel.send(" ".join(str(item) for item in allHands))
 
-						# if this the ned of MY game, start a new game
-						if 'BlackjackGod' in obj['title'] and self.currentlyPlaying:
-							self.engine.updateBalance()
+						self.engine.updateCount(allHands, remaining)
+
+						# await message.channel.send(' '.join(str(item) for item in allHands) + '\n' + str(self.engine.runningCount))
+
+						# if this the end of MY game, start a new game
+						if 'BlackjackGod' in obj['title']:
+							balanceChange = 0 # if broke even
+							if 'won' in obj['description']:
+								balanceChange = int(obj['description'].split('🥞')[1])
+							elif 'lost' in obj['description']:
+								balanceChange = -int(obj['description'].split('🥞')[1])
+
+							self.engine.updateBalance(balanceChange)
 							betAmount = self.engine.calculateBetAmount()
 
-							time.sleep(self.waitTime)
+							waitTime = self.waitTime - self.timeWaitedSoFar
+							if waitTime > 0:
+								time.sleep(waitTime)
+								self.timeWaitedSoFar = 0
 							await message.channel.send(f'-blackjack {betAmount}')
 					
 					# if this is the middle of MY game, just play the hand
 					elif 'BlackjackGod' in obj['title']:
-						move = self.engine.playHand()
+						userHands = self.__getUserHands(obj['fields'])
+						dealerHand = self.__getDealerHand(obj['fields'])
+						checkIfSplit = [entry for entry in obj['fields'] if 'Hand' in entry['name']] # Hand capitalized if Hand 1/Hand 2 (after split)
+						alreadySplit = True if len(checkIfSplit) == 1 else False
+						move = self.engine.playHand(userHands[0], dealerHand, alreadySplit)
+
 						emoji = 0
 						if move == moves.HIT:
 							emoji = '👋'
@@ -110,12 +132,7 @@ class DiscordClient(discord.Client):
 						elif move == moves.SPLIT:
 							emoji = '✌'
 						
+						waitTime = random.uniform(0.6,0.9)
+						self.timeWaitedSoFar += waitTime
+						time.sleep(waitTime)
 						await message.add_reaction(emoji)
-
-					remaining
-					if 'Cards remaining' in obj['footer']['text']:
-						remaining = int(obj['footer']['text'].split(' ')[2])
-					else:
-						remaining = 0
-					print(remaining)
-					print(remaining+1)
