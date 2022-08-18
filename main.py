@@ -14,4 +14,4 @@ discordClient.run(os.getenv('TOKEN'))
 
 # run the engine against a simulator
 # for i in range(100):
-# 	simulator.run(4000, 5000) # (shoes, balance)
+# 	simulator.run(2000, 5000) # (shoes, balance) should be around 400 shoes per day on discord

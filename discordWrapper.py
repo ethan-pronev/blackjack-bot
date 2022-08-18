@@ -48,7 +48,7 @@ class DiscordClient(discord.Client):
 		)
 		self.currentStatus = self.statuses.STOPPED
 
-		self.waitTime = 5 # time in between games
+		self.waitTime = 5.3 # time in between games
 		self.timeWaitedSoFar = 0 # to distribute waiting time over several moves
 
 
