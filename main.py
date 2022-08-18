@@ -1,10 +1,10 @@
 import os
-from dotenv import load_dotenv
 from engine import BlackjackEngine
 from discordWrapper import DiscordClient
 from simulator import BlackjackSimulator
+# from dotenv import load_dotenv
+# load_dotenv()
 
-load_dotenv()
 engine = BlackjackEngine()
 discordClient = DiscordClient(engine)
 simulator = BlackjackSimulator(engine)
