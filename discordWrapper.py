@@ -1,10 +1,12 @@
 from operator import truediv
 import time
+import threading
 import random
 import re
+import asyncio
 import discord
 from utils import enum
-from engine import moves
+from engine import BlackjackEngine, moves
 
 class DiscordClient(discord.Client):
 
@@ -34,6 +36,16 @@ class DiscordClient(discord.Client):
 		dealerHand = self.__convertRawHand(dealerHandRaw)
 		return dealerHand
 
+	async def __startRound(self, channel, betAmount):
+		while True:
+			await channel.send(f'-blackjack {betAmount}')
+			currentTime = time.time()
+			self.startTime = currentTime
+			await asyncio.sleep(10)
+			if currentTime != self.startTime or self.currentStatus != self.statuses.PLAYING: # if self.startTime got updated during the sleep, a new round was started so we don't have to resend this round
+				return
+			await channel.send('trying again')
+
 
 
 	# Constructor
@@ -49,7 +61,7 @@ class DiscordClient(discord.Client):
 		self.currentStatus = self.statuses.STOPPED
 
 		self.waitTime = 5.3 # time in between games
-		self.timeWaitedSoFar = 0 # to distribute waiting time over several moves
+		self.startTime = time.time() # to distribute waiting time over several moves
 
 
 
@@ -65,29 +77,34 @@ class DiscordClient(discord.Client):
 			if content == 'START':
 				if self.currentStatus == self.statuses.STOPPED:
 					self.currentStatus = self.statuses.CHECKING_BALANCE
+					self.engine = BlackjackEngine() # reset all engine values to initial ones
 					await message.channel.send('starting blackjack...')
 					await message.channel.send('-bal')
 			elif content == 'STOP':
 				if self.currentStatus != self.statuses.STOPPED:
 					self.currentStatus = self.statuses.STOPPED
 					await message.channel.send('stopping blackjack...')
+			elif content == 'ping':
+				await message.channel.send('pong')
 
 		if username == 'Pancake#3691':
-			# print(content + '\n')
 
 			embeds = message.embeds
 			for embed in embeds:
 				obj = embed.to_dict()
-				# print(obj)
 
+				# Get balance when first starting
 				if self.currentStatus == self.statuses.CHECKING_BALANCE:
 					if 'fields' in obj and 'author' in obj and 'name' in obj['author'] and obj['author']['name'] == 'BlackjackGod':
 						balanceField = [x for x in obj['fields'] if 'name' in x and x['name'] == 'In Hand']
 						if len(balanceField) == 1:
 							self.engine.balance = int(balanceField[0]['value'].replace('🥞', '').replace(',', ''))
+							# GAME STARTS HERE
 							self.currentStatus = self.statuses.PLAYING
-							await message.channel.send('-blackjack 1')
+							self.engine.warmingUp = True # redundancy (since engine is already reset)
+							await self.__startRound(message.channel, 1)
 					return
+
 
 				if 'title' in obj and 'Blackjack' in obj['title']:
 					# if this is the end of a game, update count
@@ -102,8 +119,6 @@ class DiscordClient(discord.Client):
 						allHands.append(dealerHand)
 
 						self.engine.updateCount(allHands, remaining)
-
-						# await message.channel.send(' '.join(str(item) for item in allHands) + '\n' + str(self.engine.runningCount))
 
 						# if this the end of MY game, start a new game
 						if 'BlackjackGod' in obj['title']:
@@ -120,11 +135,11 @@ class DiscordClient(discord.Client):
 							if self.currentStatus == self.statuses.STOPPED:
 								return
 
-							waitTime = self.waitTime - self.timeWaitedSoFar
-							if waitTime > 0:
-								time.sleep(waitTime)
-								self.timeWaitedSoFar = 0
-							await message.channel.send(f'-blackjack {betAmount}')
+							endTime = time.time()
+							elapsedTime = endTime - self.startTime
+							if elapsedTime < self.waitTime:
+								time.sleep(self.waitTime - elapsedTime)
+							await self.__startRound(message.channel, betAmount)
 					
 					# if this is the middle of MY game, just play the hand
 					elif 'BlackjackGod' in obj['title']:
@@ -145,6 +160,5 @@ class DiscordClient(discord.Client):
 							emoji = '✌'
 						
 						waitTime = random.uniform(0.6,0.9)
-						self.timeWaitedSoFar += waitTime
 						time.sleep(waitTime)
 						await message.add_reaction(emoji)
