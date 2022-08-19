@@ -89,16 +89,22 @@ class DiscordClient(discord.Client):
 
 		if username == 'Pancake#3691':
 
+			# print(content)
+
 			embeds = message.embeds
 			for embed in embeds:
 				obj = embed.to_dict()
+
+				# print(obj)
 
 				# Get balance when first starting
 				if self.currentStatus == self.statuses.CHECKING_BALANCE:
 					if 'fields' in obj and 'author' in obj and 'name' in obj['author'] and obj['author']['name'] == 'BlackjackGod':
 						balanceField = [x for x in obj['fields'] if 'name' in x and x['name'] == 'In Hand']
 						if len(balanceField) == 1:
-							self.engine.balance = int(balanceField[0]['value'].replace('🥞', '').replace(',', ''))
+							self.engine.balance = int(balanceField[0]['value'][1:].replace(',', ''))
+							print(self.engine.balance)
+							print(self.engine.balance + 1)
 							# GAME STARTS HERE
 							self.currentStatus = self.statuses.PLAYING
 							self.engine.warmingUp = True # redundancy (since engine is already reset)
@@ -124,9 +130,9 @@ class DiscordClient(discord.Client):
 						if 'BlackjackGod' in obj['title']:
 							balanceChange = 0 # if broke even
 							if 'won' in obj['description']:
-								balanceChange = int(obj['description'].split('🥞')[1])
+								balanceChange = int(obj['description'][9:].replace(',', ''))
 							elif 'lost' in obj['description']:
-								balanceChange = -int(obj['description'].split('🥞')[1])
+								balanceChange = -int(obj['description'][10:].replace(',', ''))
 
 							self.engine.updateBalance(balanceChange)
 							betAmount = self.engine.calculateBetAmount()
