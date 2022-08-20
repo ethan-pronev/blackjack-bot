@@ -106,8 +106,9 @@ class DiscordClient(discord.Client):
 					if len(balanceField) == 1:
 						self.engine.balance = int(balanceField[0]['value'][1:].replace(',', ''))
 
+						print(obj)
 						# print(f'New balance: {self.engine.balance}')
-						
+
 						if self.currentStatus == self.statuses.CHECKING_BALANCE:
 							# GAME STARTS HERE
 							self.currentStatus = self.statuses.PLAYING
