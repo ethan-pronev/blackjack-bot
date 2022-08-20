@@ -104,9 +104,9 @@ class DiscordClient(discord.Client):
 				if 'fields' in obj and 'author' in obj and 'name' in obj['author'] and obj['author']['name'] == 'BlackjackGod':
 					balanceField = [x for x in obj['fields'] if 'name' in x and x['name'] == 'In Hand']
 					if len(balanceField) == 1:
+						print(obj)
 						self.engine.balance = int(balanceField[0]['value'][1:].replace(',', ''))
 
-						print(obj)
 						# print(f'New balance: {self.engine.balance}')
 
 						if self.currentStatus == self.statuses.CHECKING_BALANCE:
