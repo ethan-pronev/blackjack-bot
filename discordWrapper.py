@@ -87,9 +87,12 @@ class DiscordClient(discord.Client):
 			elif content == 'ping':
 				await message.channel.send('pong')
 
-		if username == 'Pancake#3691':
+		# print(content)
 
-			# print(content)
+		if username != 'Pancake#3691' and 'rob' in content and self.user.mentioned_in(message):
+			await message.channel.send('-bal')
+
+		if username == 'Pancake#3691':
 
 			embeds = message.embeds
 			for embed in embeds:
@@ -97,14 +100,15 @@ class DiscordClient(discord.Client):
 
 				# print(obj)
 
-				# Get balance when first starting
-				if self.currentStatus == self.statuses.CHECKING_BALANCE:
-					if 'fields' in obj and 'author' in obj and 'name' in obj['author'] and obj['author']['name'] == 'BlackjackGod':
-						balanceField = [x for x in obj['fields'] if 'name' in x and x['name'] == 'In Hand']
-						if len(balanceField) == 1:
-							self.engine.balance = int(balanceField[0]['value'][1:].replace(',', ''))
-							print(self.engine.balance)
-							print(self.engine.balance + 1)
+				# Get balance when first starting or after being robbed
+				if 'fields' in obj and 'author' in obj and 'name' in obj['author'] and obj['author']['name'] == 'BlackjackGod':
+					balanceField = [x for x in obj['fields'] if 'name' in x and x['name'] == 'In Hand']
+					if len(balanceField) == 1:
+						self.engine.balance = int(balanceField[0]['value'][1:].replace(',', ''))
+
+						# print(f'New balance: {self.engine.balance}')
+						
+						if self.currentStatus == self.statuses.CHECKING_BALANCE:
 							# GAME STARTS HERE
 							self.currentStatus = self.statuses.PLAYING
 							self.engine.warmingUp = True # redundancy (since engine is already reset)
