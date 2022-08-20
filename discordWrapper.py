@@ -104,10 +104,12 @@ class DiscordClient(discord.Client):
 				if 'fields' in obj and 'author' in obj and 'name' in obj['author'] and obj['author']['name'] == 'BlackjackGod':
 					balanceField = [x for x in obj['fields'] if 'name' in x and x['name'] == 'In Hand']
 					if len(balanceField) == 1:
-						print(obj)
-						self.engine.balance = int(balanceField[0]['value'][1:].replace(',', ''))
-
-						# print(f'New balance: {self.engine.balance}')
+						if '>' in balanceField[0]['value']: # unupported emoji
+							self.engine.balance = int(balanceField[0]['value'].split('>')[1].replace(',', ''))
+							# print(f'New balance: {self.engine.balance} (unsupported)')
+						else: # supported emoji
+							self.engine.balance = int(balanceField[0]['value'][1:].replace(',', ''))
+							# print(f'New balance: {self.engine.balance} (supported)')
 
 						if self.currentStatus == self.statuses.CHECKING_BALANCE:
 							# GAME STARTS HERE
@@ -134,10 +136,19 @@ class DiscordClient(discord.Client):
 						# if this the end of MY game, start a new game
 						if 'BlackjackGod' in obj['title']:
 							balanceChange = 0 # if broke even
-							if 'won' in obj['description']:
-								balanceChange = int(obj['description'][9:].replace(',', ''))
-							elif 'lost' in obj['description']:
-								balanceChange = -int(obj['description'][10:].replace(',', ''))
+
+							if '>' in obj['description']: # unupported emoji
+								if 'won' in obj['description']:
+									balanceChange = int(obj['description'].split('>')[1].replace(',', ''))
+								elif 'lost' in obj['description']:
+									balanceChange = -int(obj['description'].split('>')[1].replace(',', ''))
+								# print(f'Win/Lose: {balanceChange} (unsupported)')
+							else: # supported emoji
+								if 'won' in obj['description']:
+									balanceChange = int(obj['description'][9:].replace(',', ''))
+								elif 'lost' in obj['description']:
+									balanceChange = -int(obj['description'][10:].replace(',', ''))
+								# print(f'Win/Lose: {balanceChange} (supported)')
 
 							self.engine.updateBalance(balanceChange)
 							betAmount = self.engine.calculateBetAmount()
