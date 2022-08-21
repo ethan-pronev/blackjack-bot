@@ -68,12 +68,12 @@ class BlackjackEngine():
 	def updateBalance(self, amount):
 		self.balance += amount
 
-		if self.balance >= 100000:
-			self.bettingUnits = 2000
-		elif self.balance >= 1000000:
-			self.bettingUnits = 3000
-		elif self.balance >= 10000000:
-			self.bettingUnits = 4000
+		# if self.balance >= 100000:
+		# 	self.bettingUnits = 2000
+		# elif self.balance >= 1000000:
+		# 	self.bettingUnits = 3000
+		# elif self.balance >= 10000000:
+		# 	self.bettingUnits = 4000
 
 	def calculateBetAmount(self):
 		if self.trueCount >= 1 and not self.warmingUp:
